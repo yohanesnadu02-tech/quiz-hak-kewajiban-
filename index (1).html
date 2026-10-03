@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quiz Battle Real-Time 8 Tim</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#0f172a,#1d4ed8);color:#0f172a;min-height:100vh}.wrap{max-width:1150px;margin:auto;padding:18px}.card{background:#fff;border-radius:22px;padding:24px;box-shadow:0 15px 45px #0005}.hidden{display:none!important}.center{text-align:center}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.teams{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}.btn,.team,.ans{border:0;border-radius:13px;padding:14px;font-weight:800;font-size:16px;cursor:pointer}.btn{background:#2563eb;color:white}.dark{background:#0f172a}.gray{background:#e2e8f0;color:#0f172a}.green{background:#16a34a}.red{background:#dc2626}.team{background:#e2e8f0;border:3px solid transparent}.team.sel{border-color:#2563eb;background:#dbeafe}.team.busy{opacity:.4;cursor:not-allowed}.qbox{padding:20px;background:#eff6ff;border-radius:16px;font-size:23px;font-weight:800}.answers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}.ans{background:white;border:2px solid #cbd5e1;text-align:left}.ans:disabled{opacity:.5}.timer{font-size:64px;font-weight:900}.code{font-size:42px;font-weight:900;letter-spacing:6px}.status{padding:10px;border-radius:12px;background:#e2e8f0;font-weight:700}.ok{background:#dcfce7;color:#166534}.wait{background:#fef3c7;color:#92400e}.bad{background:#fee2e2;color:#991b1b}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}input{width:100%;padding:14px;border:2px solid #cbd5e1;border-radius:12px;font-size:18px}.small{font-size:13px;color:#64748b}.leader{width:100%;border-collapse:collapse}.leader td,.leader th{padding:9px;border-bottom:1px solid #e2e8f0;text-align:left}@media(max-width:700px){.grid2,.answers{grid-template-columns:1fr}.teams,.grid4{grid-template-columns:repeat(2,1fr)}.timer{font-size:48px}.qbox{font-size:18px}}
+</style></head>
+<body><div class="wrap">
+
+<section id="home" class="card center">
+<h1>🎮 QUIZ BATTLE</h1><h2>HAK & KEWAJIBAN WARGA NEGARA</h2><p class="small">8 Tim • Real-Time • 60 Detik</p>
+<div class="grid2" style="margin-top:22px"><button class="btn dark" onclick="teacherPage()">👨‍🏫 GURU / IFP</button><button class="btn" onclick="studentPage()">📱 SISWA</button></div>
+</section>
+
+<section id="teacherLogin" class="card center hidden"><h2>🔐 AKSES GURU / IFP</h2><p>Masukkan kode guru satu kali.</p><input id="teacherCode" type="password" placeholder="Kode Guru"><p id="terr" class="bad hidden"></p><br><button class="btn" onclick="loginTeacher()">MASUK</button></section>
+
+<section id="teacher" class="card hidden">
+<div class="top"><div><h2>👨‍🏫 MODE GURU / IFP</h2><div id="connInfo" class="small">Membuat ruang...</div></div><button class="btn gray" onclick="location.reload()">Keluar</button></div>
+<div class="center" style="background:#eff6ff;padding:18px;border-radius:18px;margin:14px 0"><div>KODE GAME</div><div id="roomCode" class="code">------</div><div class="small">Siswa membuka link yang sama → SISWA → masukkan kode ini → pilih TIM.</div></div>
+<div class="top"><button class="btn green" onclick="startRound()">▶️ MULAI</button><button class="btn red" onclick="revealRound()">🔓 REVEAL</button><button class="btn" onclick="nextRound()">⏭️ SOAL BERIKUTNYA</button><button class="btn gray" onclick="resetRound()">🔄 RESET</button></div>
+<div class="top" style="margin-top:15px"><h3 id="qtitle">Belum mulai</h3><div id="timer" class="timer">60</div></div>
+<div id="question" class="qbox">Menunggu guru memulai permainan.</div><div id="hostReveal" style="margin-top:12px"></div>
+<h3>Status Tim</h3><div id="teamStatus" class="grid4"></div>
+<h3>Rekap Nilai</h3><div id="leaderboard"></div>
+</section>
+
+<section id="studentLogin" class="card hidden">
+<h2 class="center">📱 MASUK SEBAGAI SISWA</h2><p class="small center">Masukkan kode yang tampil di IFP.</p>
+<input id="roomInput" placeholder="Kode Game"><div id="teamChoices" class="teams"></div><p id="serr" class="bad hidden"></p>
+<button class="btn" style="width:100%" onclick="connectStudent()">MASUK PERMAINAN</button>
+</section>
+
+<section id="student" class="card hidden">
+<div class="top"><div><h2 id="myTeam">TIM</h2><div id="sstatus" class="status wait">TERHUBUNG • MENUNGGU</div></div><div id="stimer" class="timer">--</div></div>
+<div id="swait" class="center" style="padding:35px"><h2>Menunggu soal dari guru...</h2><p class="small">Soal dibaca dari layar IFP.</p></div>
+<div id="splay" class="hidden"><div id="squestion" class="qbox"></div><div id="sanswers" class="answers"></div><div id="sresult" style="margin-top:12px"></div></div>
+</section>
+</div>
+
+<script>
+const QUESTIONS=[
+["Persamaan kedudukan warga negara di dalam hukum dan pemerintahan terdapat dalam ...","Pasal 27 ayat (1)","Pasal 28A","Pasal 30 ayat (1)","Pasal 31 ayat (1)"],
+["Hak untuk hidup dan mempertahankan hidup diatur dalam ...","Pasal 27 ayat (3)","Pasal 28A","Pasal 28J","Pasal 34 ayat (1)"],
+["Kebebasan memeluk agama dan beribadah terdapat dalam ...","Pasal 28E ayat (1)","Pasal 27 ayat (2)","Pasal 30 ayat (1)","Pasal 34 ayat (3)"],
+["Kebebasan berserikat, berkumpul, dan mengeluarkan pendapat terdapat dalam ...","Pasal 28E ayat (3)","Pasal 28A","Pasal 27 ayat (1)","Pasal 31 ayat (1)"],
+["Hak dan kewajiban ikut serta dalam pembelaan negara terdapat dalam ...","Pasal 27 ayat (3)","Pasal 28D ayat (2)","Pasal 28H ayat (4)","Pasal 34 ayat (2)"],
+["Setiap warga negara berhak mendapat pendidikan merupakan ketentuan ...","Pasal 27 ayat (2)","Pasal 28J","Pasal 31 ayat (1)","Pasal 34 ayat (1)"],
+["Setiap orang wajib menghormati hak asasi manusia orang lain terdapat dalam ...","Pasal 28A","Pasal 28J ayat (1)","Pasal 30 ayat (1)","Pasal 27 ayat (1)"],
+["Pembatasan hak dan kebebasan oleh undang-undang berkaitan dengan ...","Pasal 28J ayat (2)","Pasal 28A","Pasal 31 ayat (1)","Pasal 34 ayat (3)"],
+["Hak dan kewajiban ikut serta dalam usaha pertahanan dan keamanan negara terdapat dalam ...","Pasal 30 ayat (1)","Pasal 27 ayat (2)","Pasal 28E ayat (1)","Pasal 34 ayat (1)"],
+["Membayar pajak untuk mendukung pelayanan publik merupakan contoh ...","hak tanpa kewajiban","kewajiban warga negara","hak absolut","kebebasan tanpa batas"]
+];
+const CORRECT=[0,1,0,0,0,2,1,0,0,1];
+let peer=null,hostPeerId='',roomCode='',teacher=false,student=false,myTeam=-1,conn=null;
+let teams=Array.from({length:8},(_,i)=>({name:'TIM '+(i+1),connected:false,answered:false,answer:null,points:0,conn:null}));
+let q=0,running=false,revealed=false,remaining=60,timer=null,roundStart=0;
+
+function hideAll(){document.querySelectorAll('section').forEach(x=>x.classList.add('hidden'))}
+function teacherPage(){hideAll();document.getElementById('teacherLogin').classList.remove('hidden');document.getElementById('teacherCode').focus()}
+function studentPage(){hideAll();document.getElementById('studentLogin').classList.remove('hidden');drawChoices()}
+function loginTeacher(){if(document.getElementById('teacherCode').value!=='guru96'){document.getElementById('terr').textContent='Kode guru salah.';document.getElementById('terr').classList.remove('hidden');return}teacher=true;hideAll();document.getElementById('teacher').classList.remove('hidden');startHost()}
+function startHost(){
+ roomCode=Math.floor(100000+Math.random()*900000);hostPeerId='QB8_'+roomCode;
+ peer=new Peer(hostPeerId);
+ peer.on('open',id=>{document.getElementById('roomCode').textContent=roomCode;document.getElementById('connInfo').textContent='IFP terhubung ke layanan real-time.'});
+ peer.on('connection',c=>handleIncoming(c));
+ peer.on('error',e=>{document.getElementById('connInfo').textContent='Koneksi: '+e.type});
+}
+function handleIncoming(c){
+ c.on('open',()=>{c.on('data',msg=>hostMessage(c,msg));c.on('close',()=>{let i=teams.findIndex(t=>t.conn&&t.conn.peer===c.peer);if(i>=0){teams[i].connected=false;teams[i].conn=null;teams[i].answered=false;renderTeams();broadcastState()}})});
+}
+function hostMessage(c,msg){
+ if(msg.type==='join'){let i=Number(msg.team);if(i<0||i>7||teams[i].connected){c.send({type:'joinDenied',reason:'Tim sudah digunakan.'});return}
+ teams[i].connected=true;teams[i].conn=c;c.team=i;c.send({type:'joined',team:i,state:statePayload()});renderTeams();broadcastState();return}
+ if(msg.type==='answer'){let i=Number(msg.team);if(i!==c.team||!running||revealed||teams[i].answered)return;teams[i].answered=true;teams[i].answer=Number(msg.answer);teams[i].elapsed=60-remaining;renderTeams();broadcastState();let active=teams.filter(t=>t.connected);if(active.length&&active.every(t=>t.answered))revealRound()}
+}
+function broadcast(obj){teams.forEach(t=>{if(t.connected&&t.conn&&t.conn.open)t.conn.send(obj)})}
+function statePayload(){return{type:'state',q,running,revealed,remaining,question:QUESTIONS[q],teams:teams.map(t=>({connected:t.connected,answered:t.answered,points:t.points}))}}
+function broadcastState(){broadcast(statePayload())}
+function drawChoices(){let e=document.getElementById('teamChoices');e.innerHTML='';teams.forEach((t,i)=>{let b=document.createElement('button');b.className='team';b.textContent=t.name;b.onclick=()=>selectTeam(i);b.disabled=t.connected;e.appendChild(b)})}
+function selectTeam(i){myTeam=i;document.querySelectorAll('#teamChoices .team').forEach((b,j)=>b.classList.toggle('sel',j===i))}
+function connectStudent(){
+ let code=document.getElementById('roomInput').value.trim();if(!/^\d{6}$/.test(code)){showErr('Kode game harus 6 angka.');return}if(myTeam<0){showErr('Pilih TIM 1–TIM 8.');return}
+ hideAll();document.getElementById('student').classList.remove('hidden');document.getElementById('myTeam').textContent='📱 TIM '+(myTeam+1);
+ connPeer(code)
+}
+function connPeer(code){
+ peer=new Peer();
+ peer.on('open',()=>{conn=peer.connect('QB8_'+code,{reliable:true});conn.on('open',()=>conn.send({type:'join',team:myTeam}));conn.on('data',studentMessage);conn.on('close',()=>setStatus('Koneksi terputus','bad'))});
+ peer.on('error',e=>{showStudentResult('Tidak dapat terhubung: '+e.type,'bad')})
+}
+function studentMessage(msg){
+ if(msg.type==='joinDenied'){showStudentResult(msg.reason,'bad');return}
+ if(msg.type==='joined'){setStatus('TERHUBUNG • MENUNGGU','wait');applyState(msg.state);return}
+ if(msg.type==='state')applyState(msg);
+ if(msg.type==='reveal')applyReveal(msg)
+}
+function applyState(s){
+ q=s.q;running=s.running;revealed=s.revealed;remaining=s.remaining;document.getElementById('stimer').textContent=running?remaining:'--';
+ if(running&&!revealed){document.getElementById('swait').classList.add('hidden');document.getElementById('splay').classList.remove('hidden');document.getElementById('squestion').textContent=s.question[0];drawStudentAnswers(s.question);let me=s.teams[myTeam];setStatus(me.answered?'SUDAH MENJAWAB':'TERHUBUNG • MENJAWAB',me.answered?'ok':'wait')}
+ else if(!running&&!revealed){document.getElementById('swait').classList.remove('hidden');document.getElementById('splay').classList.add('hidden')}
+}
+function drawStudentAnswers(question){let e=document.getElementById('sanswers');e.innerHTML='';question.slice(1).forEach((a,i)=>{let b=document.createElement('button');b.className='ans';b.textContent=String.fromCharCode(65+i)+'. '+a;b.onclick=()=>sendAnswer(i);b.disabled=!running||revealed||teams[myTeam]?.answered;e.appendChild(b)})}
+function sendAnswer(i){if(!conn||!conn.open||!running)return;conn.send({type:'answer',team:myTeam,answer:i});document.getElementById('sstatus').textContent='SUDAH MENJAWAB';document.getElementById('sstatus').className='status ok';document.querySelectorAll('#sanswers button').forEach(b=>b.disabled=true)}
+function startRound(){if(running)return;revealed=false;running=true;remaining=60;roundStart=Date.now();teams.forEach(t=>{t.answered=false;t.answer=null;t.elapsed=null});document.getElementById('hostReveal').innerHTML='';renderQuestion();broadcastState();startTimer()}
+function startTimer(){clearInterval(timer);timer=setInterval(()=>{remaining--;renderHostTimer();broadcastState();if(remaining<=0){remaining=0;clearInterval(timer);running=false;revealRound()}},1000);renderHostTimer()}
+function renderHostTimer(){document.getElementById('timer').textContent=remaining}
+function renderQuestion(){document.getElementById('qtitle').textContent='Soal '+(q+1)+' / '+QUESTIONS.length;document.getElementById('question').textContent=QUESTIONS[q][0]}
+function revealRound(){
+ if(revealed)return;clearInterval(timer);running=false;revealed=true;let correct=CORRECT[q];
+ teams.forEach(t=>{if(t.connected&&t.answer===correct)t.points+=(t.elapsed<=40?10:8)});
+ document.getElementById('hostReveal').innerHTML='<div class="status ok">🔓 JAWABAN BENAR: <b>'+String.fromCharCode(65+correct)+'. '+QUESTIONS[q][correct+1]+'</b></div>';
+ renderTeams();broadcast({type:'reveal',correct,question:QUESTIONS[q],teams:teams.map(t=>({connected:t.connected,answered:t.answered,answer:t.answer,points:t.points,elapsed:t.elapsed}))});broadcastState()
+}
+function applyReveal(m){let me=m.teams[myTeam];let correct=m.correct;if(me.answer===correct){let pts=me.elapsed<=40?10:8;showStudentResult('✅ BENAR! +'+pts+' poin. Waktu: '+me.elapsed+' detik.','ok')}else if(me.answer===null||me.answer===undefined)showStudentResult('⏱️ Tidak menjawab. 0 poin.','bad');else showStudentResult('❌ BELUM TEPAT. 0 poin. Jawaban benar: '+String.fromCharCode(65+correct)+'.','bad');setStatus('REVEAL','ok')}
+function nextRound(){q=(q+1)%QUESTIONS.length;revealed=false;remaining=60;teams.forEach(t=>{t.answered=false;t.answer=null;t.elapsed=null});document.getElementById('hostReveal').innerHTML='';renderQuestion();running=true;roundStart=Date.now();broadcastState();startTimer()}
+function renderTeams(){let e=document.getElementById('teamStatus');e.innerHTML='';teams.forEach(t=>{let d=document.createElement('div');d.className='status '+(t.connected?(t.answered?'ok':'wait'):'');d.innerHTML='<b>'+t.name+'</b><br>'+(t.connected?(t.answered?'🟢 SUDAH MENJAWAB':'🟡 MENUNGGU'):'⚪ BELUM MASUK')+'<br>⭐ '+t.points; e.appendChild(d)});let rows=teams.slice().sort((a,b)=>b.points-a.points).map((t,i)=>'<tr><td>'+(i+1)+'</td><td>'+t.name+'</td><td>'+t.points+'</td></tr>').join('');document.getElementById('leaderboard').innerHTML='<table class="leader"><tr><th>#</th><th>Tim</th><th>Poin</th></tr>'+rows+'</table>'}
+function resetRound(){clearInterval(timer);running=false;revealed=false;q=0;remaining=60;teams.forEach(t=>{t.answered=false;t.answer=null;t.points=0});document.getElementById('hostReveal').innerHTML='';renderQuestion();renderTeams();broadcast({type:'reset'});broadcastState()}
+function setStatus(text,cl){let e=document.getElementById('sstatus');e.textContent=text;e.className='status '+cl}
+function showStudentResult(text,cl){let e=document.getElementById('sresult');e.textContent=text;e.className='status '+cl}
+function showErr(text){let e=document.getElementById('serr');e.textContent=text;e.classList.remove('hidden')}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const s=document.getElementById('studentLogin');
+  const t=document.getElementById('teacherLogin');
+  if(!s||!t) return;
+  // Ensure the two main buttons remain functional even if a browser blocks inline handlers.
+  document.querySelectorAll('button').forEach(b=>{
+    if(b.textContent.includes('SISWA')) b.addEventListener('click',studentPage);
+    if(b.textContent.includes('GURU / IFP')) b.addEventListener('click',teacherPage);
+  });
+  drawChoices();
+});
+</script></body></html>
